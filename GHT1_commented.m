@@ -5,8 +5,8 @@ clc
 % Read images:
 target = imread('target.png');
 reference = imread('reference.png');
-% figure 
-% imshow(target)
+figure 
+imshow(target)
 % figure
 % imshow(reference)
 
@@ -78,7 +78,7 @@ end
 
 % Get the target edge points
 [x,y] = find(target > 0); %get every 1 in target image and save its values to x and y
-maxPoints_target = size(x,1); %get number of 1 in target image
+maxPoints_target = size(x,1); %get number of ones in target image
 
 % Gradient of target:
 dy = imfilter(double(target),[1; -1],'same'); %same filtering as in reference image
