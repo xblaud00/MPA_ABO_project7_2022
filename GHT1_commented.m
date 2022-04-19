@@ -1,165 +1,138 @@
-close all
-clear all
-clc
-%%
-% Read images:
-target = imread('target.png');
-reference = imread('reference.png');
-figure 
-imshow(target)
+%Part of this script are retrieved from...
+clc;
+close all;
+clearvars;
+
+%%--
+%Nahrání referenèního a target obrazu
+target = imread("target_test.png");
+reference = imread("reference_test.png");
+
+orig_target = target; %uložení pùvodního obrazu do nové promìnné, protože bude využit na konci 
+
+% Zobrazení nahraných obrazù
+% figure
+% imshow(target)
+% title("Target image")
+% 
 % figure
 % imshow(reference)
+% title("Reference image")
 
-%% 
-% Convert Images to Grayscale:
-% First save the original because at the end we will put marks on found
-% templates from original image
-original_target = target;
+%%
+% Pøevedení obrazù na grayscale
+
 target = rgb2gray(target);
 reference = rgb2gray(reference);
 
+% provedení detekce hran u obou obrazù
+target = edge(target, "canny");
+reference = edge(reference, "canny");
 
-% Get edges with default threshold:
-% I have tried different combinations of Sobel, Prewitt, Canny and Roberts.
-% Almost all combinations are working(With different maximum values). The
-% Canny seems the most slowest one but it seems like Canny is better in
-% means of False Alarm situations. Probably thats why everybody is using
-% Canny with Hough transfrom. I have also tried without applying any edge
-% method and the code works fine. As far as I read, Hough transform doesn't
-% have to work on binary images so, we can actually omit this step. But
-% just for the sake of this assignment I will use the edge method which
-% will help me get the best hough space in means of being observable by
-% human eyes. With the "Sobel/Canny or Prewitt/Canny" 3 template image
-% clearly visible but there are also very close maximas everywhere around
-% the accumulator, but when I try Canny Canny there is a huge gap between
-% true local maximas and others, therefore it has better visibility
+% vyhledání prostøedního bodu v referenèním obrazu
+refPointX = round(size(reference,1)/2);
+refPointY = round(size(reference,2)/2);
 
-%get edges of refrernce and target image - Canny method
-target = edge(target,'Canny');
-reference = edge(reference,'Canny');
-%toc
+%uložení všech hodnot, které jsou 1 v referenèním obrazu do hodnot "x" a
+%"y"
 
-% Reference Point: (Middle point) - find middle point in reference image
-refX = round(size(reference,1)/2);
-refY = round(size(reference,2)/2);
+[x,y]=find(reference>0);
 
-% Get Reference edge point - all pixels that are 1 and save their positions
-[x,y] = find(reference> 0);
+maxPoints = size(x,1); %dá èíslo, kolik je bodù s 1 v referenšním obrazu
+maxAngles = 180;
 
-maxAngels = 180;
-maxPoints = size(x,1); %calculate number of points
+% Pøevedení referenèního obrazu na gradientní obraz
+dy = imfilter(double(reference),[1; -1],'same');
+dx = imfilter(double(reference),[1 -1],'same');
+reference_gradient = atan2(dy,dx)*180/pi(); %vytvoøí gradientní obraz a pøevede radiány na stupnì
 
-% Gradient of reference image:
-dy = imfilter(double(reference),[1; -1],'same');%multidimensional filtering, [1; -1] assign this values
-dx = imfilter(double(reference),[1 -1],'same');%same = same size as input
-reference_grad = atan2(dy,dx)*180/pi(); %creates gradient image, finds inverse tangent of point dy,dx + converts from radiant to degrees
+%vytvoøení R-tabulky
+rtable = zeros(maxAngles, maxPoints, 2);
+binCount = zeros(maxAngles);
 
-% Gradient je vektor, ktery ma smer nejrychlejsÃ„Â± zmeny. Mame-li
-%liniovou hranu (jejÃ„Â±z smer je dan sklonem teto line), je v kazdem jejÃ„Â±m bode gradient
-%kolmy na linii a tÃ„Â±m i na smer hrany
+for i=1:1:maxPoints
 
-% Rtable: create r table
-rtable = zeros(maxAngels, maxPoints, 2);%rtable from maxAngles, number of point in reference image and 2 dimensions
-binCount = zeros(maxAngels); %matrix 180x180 of zeros 
+    k = reference_gradient(x(i),y(i)) + 180;
+    binCount(k) = binCount(k) + 1;
+  
 
-for i=1:1:maxPoints %iteration of one step to number of maxPoints
-bin = reference_grad(x(i), y(i)) + maxAngels; %assign to bin
-binCount(bin) = binCount(bin) + 1;
+    Dx = x(i) - refPointX;
+    Dy = y(i) - refPointY;
 
-Dx = x(i) - refX; %substract refx (middle) coordiante from refrence image from every egde point in referencce image and save it to Dx
-Dy = y(i) - refY; %same but for refY and Dy
+    rtable(k, binCount(k), 1) = Dx;
+    rtable(k, binCount(k), 2) = Dy;
 
-rtable(bin, binCount(bin), 1) = Dx;
-rtable(bin, binCount(bin), 2) = Dy;
+   
 end
-%% 
-%%--------------------------------------------------------------------------
-%Accumulator:
 
-% Get the target edge points
-[x,y] = find(target > 0); %get every 1 in target image and save its values to x and y
-maxPoints_target = size(x,1); %get number of ones in target image
-
-% Gradient of target:
-dy = imfilter(double(target),[1; -1],'same'); %same filtering as in reference image
-dx = imfilter(double(target),[1 -1],'same');
-target_grad = atan2(dy,dx)*180/pi(); %create gradient image asi in ref image
-
-% Accumulator(Hough space):
-size_target = size(target); %get the size of target image
-accumulator = zeros(size_target); %create matrix called accumulator full of zeros and size of target image
-
-% Total match:
-for i=1:1:maxPoints_target %iterate with step one throught number of 1 point in target img
-% The gradient angle:
-bin = target_grad(x(i), y(i)) + maxAngels;
-
-for j = 1:1:binCount(bin)
-tx = x(i) - rtable(bin, j, 1);
-ty = y(i) - rtable(bin, j, 2);
-if (tx>0) && (tx<size_target(1)) && (ty>0) && (ty<size_target(2))
-accumulator(tx, ty) = accumulator(tx, ty)+1;
-end
-end
-end
-%--------------------------------------------------------------------------
 %%
-% Find local maxima:
-max_value1 = max(max(accumulator)); %find maximum in accumulator
-[raw1,col1] = find(accumulator == max_value1); %get row and column of the maximum in accumulator
+% Akumulátor
 
-% Second local maxima - pro nalezenÃ­ objektÅ¯, kterÃ© nejsou 100% viditelnÃ© -
-% druhÃ¡ nejvÄ›tÅ¡Ã­ veliÄina
-max_value2 = max(max(accumulator(accumulator < (max_value1)))); %get second highest value
-[raw2,col2] = find(accumulator == max_value2); %save it to row and col
+% uložení všech 1 v target obrazu do "a" a "b"
+[a,b] = find(target > 0);
+maxPoints_target = size(a,1); %dostane poèet bodù v target obraze
+
+% pøevedení na gradientní obraz
+dy_targ = imfilter(double(target),[1; -1],'same'); 
+dx_targ = imfilter(double(target),[1 -1],'same');
+target_gradient = atan2(dy_targ,dx_targ)*180/pi();
+
+% Vytvoøení Houghova prostoru
+[w,z] = size(target);
+size_target = size(target);
+angle = 360;
+accumulator = zeros(w,z,angle);
+
+for i=1:1:maxPoints_target 
+h = target_gradient(a(i), b(i)) + 180;
+
+
+for j = 1:1:binCount(h)
+for q = 1:angle
+
+tx = a(i) - rtable(h, j, 1);
+ty = b(i) - rtable(h, j, 2);
+
+if (tx>0) && (tx<size_target(1)) && (ty>0) && (ty<size_target(2))
+accumulator(tx, ty, q) = accumulator(tx, ty, q)+1;
+
+end
+end
+end
+end
+
+max_value1 = max(max(accumulator)); %find maximum in accumulator
+[raw1,col1,theta] = find(accumulator == max_value1); %get row and column of the maximum in accumulator
 
 % Display:
 
 
-figure
-imshow(accumulator, []);
-pause
+
 
 figure
 imshow(target);
-pause
+
 
 figure
-imshow(original_target);
+imshow(orig_target);
 hold on;
-plot(col1,raw1,'r.');
-plot(col2,raw2,'r.');
-pause
-
-subplot(2,2,1),imshow(target),title('Target Image with Edges');
-%%
-% ----------------------------------
-% This part is just for Graph Title:
-str = "Accumulator(x,y): ";
-for i=1:size(raw1)
-str1 = sprintf('(%d, %d) ',raw1(i),col1(i));
-str = strcat(str,str1);
-end
-for i=1:size(raw2)
-str2 = sprintf('(%d, %d) ',raw2(i),col2(i));
-str = strcat(str,str2);
-end
-% ----------------------------------
+plot3(col1,raw1,theta,'r.');
 
 
-subplot(2,2,[3,4]),imshow(original_target),title('Target Image with Found Templates ( Red Dots )');
-hold on;
-plot(col1,raw1,'r.'); % Put red dot
-plot(col2,raw2,'r.');
-hold on;
-Circle(col2,raw2, Dy, 10);
-%Circle(col1,raw1, Dy, 10);
-hold on;
 
-function Circle(centery, centerx, reference, r)
-radius = reference + r;
-angle = 0:0.01:2*pi; 
-d_x = radius*cos(angle);
-d_y = radius*sin(angle);
-plot(centery+d_y, centerx+d_x, 'r');
-end
+% subplot(2,2,1),imshow(target),title('Target Image with Edges');
+% %%
+% % ----------------------------------
+% % This part is just for Graph Title:
+% % str = "Accumulator(x,y): ";
+% % for i=1:size(raw1)
+% % str1 = sprintf('(%d, %d, %d) ',raw1(i),col1(i),theta(i));
+% % str = strcat(str,str1);
+% % end
+% 
+% 
+% subplot(2,2,[3,4]),imshow(orig_target),title('Target Image with Found Templates ( Red Dots )');
+% hold on;
+% plot3(col1,raw1,theta,'r.'); % Put red dot
+% hold on;
+
