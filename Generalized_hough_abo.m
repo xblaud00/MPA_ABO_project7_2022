@@ -46,7 +46,7 @@ dy = imfilter(double(reference),[1; -1],'same');
 dx = imfilter(double(reference),[1 -1],'same');
 reference_gradient = atan2(dy,dx)*180/pi(); %create gradient image and convert radians to degrees
 
-%Create 2 R-tables, one for rotation
+%Create R-tables, for rotation, scaling and basic images
 rtable = zeros(2*maxAngles, maxPoints, 2);
 binCount = zeros(2*maxAngles,1);
 rtable_sc = zeros(2*maxAngles, maxPoints, 2); 
