@@ -4,10 +4,10 @@ clc;
 close all;
 clearvars;
 
-
+%
 %Load reference and target image
-target = imread("t_target.png");
-reference = imread("t.png");
+target = imread("q_test.png");
+reference = imread("q.jpg");
 
 orig_target = target; %save original target image to another variable for later
 
@@ -87,8 +87,8 @@ target_gradient = atan2(dy_targ,dx_targ)*180/pi();
 % Create Hough space
 [w,z] = size(target);
 size_target = size(target);
-
 accumulator = zeros(w,z);
+
 
 for i=1:1:maxPoints_target 
     h = target_gradient(a(i), b(i)) + 180;
@@ -153,9 +153,9 @@ max_value3 = max(max(accumulator3)); %find maximum in accumulator2 for rotation
 [raw3,col3] = find(accumulator3 == max_value3); %get row and column of the maximum in accumulator2
 
 
-%display reference image and target image with dots
-subplot(1,2,1),imshow(reference);
-subplot(1,2,2),imshow(orig_target),hold on,plot(col1,raw1,'r.'),hold on,plot(col2,raw2,'r.'),hold on,plot(col3,raw3,'r.'); %red dots, that corespod with referrecne image
+%display reference image and target image
+subplot(1,2,1),imshow(reference);title("Reference Image");
+subplot(1,2,2),imshow(orig_target);title("Target Image");hold on,plot(col1,raw1,'r.'),hold on,plot(col2,raw2,'r.'),hold on,plot(col3,raw3,'r.'); %red dots, that corespod with referrecne image
 
 
 
