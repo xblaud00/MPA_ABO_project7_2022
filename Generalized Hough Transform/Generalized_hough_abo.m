@@ -1,4 +1,4 @@
-%Part of this script are retrieved from Shellyhan. https://github.com/Shellyhan
+%Part of this script is retrieved from Shellyhan. https://github.com/Shellyhan
 
 clc;
 close all;
