@@ -1,9 +1,10 @@
-%Part of this script are retrieved from...
+%Part of this script are retrieved from Shellyhan. https://github.com/Shellyhan
+
 clc;
 close all;
 clearvars;
 
-%
+
 %Load reference and target image
 target = imread("t_target.png");
 reference = imread("t.png");
@@ -86,9 +87,8 @@ target_gradient = atan2(dy_targ,dx_targ)*180/pi();
 % Create Hough space
 [w,z] = size(target);
 size_target = size(target);
+
 accumulator = zeros(w,z);
-
-
 
 for i=1:1:maxPoints_target 
     h = target_gradient(a(i), b(i)) + 180;
