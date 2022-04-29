@@ -6,7 +6,7 @@ clearvars;
 
 %
 %Load reference and target image
-target = imread("q_test.png");
+target = imread("q_target.png");
 reference = imread("q.jpg");
 
 orig_target = target; %save original target image to another variable for later
